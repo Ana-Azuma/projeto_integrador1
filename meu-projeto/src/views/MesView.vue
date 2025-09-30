@@ -19,6 +19,15 @@
             >
               Atualizar
             </button>
+            <button 
+              @click="sair" 
+              class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition flex items-center gap-2"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              Sair
+            </button>
           </div>
         </div>
       </div>
@@ -341,6 +350,16 @@ export default {
     }
   },
   methods: {
+    sair() {
+      // Limpar dados de sessão/autenticação se houver
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      sessionStorage.clear();
+      
+      // Redirecionar para a raiz (home/login)
+      window.location.href = '/';
+    },
+    
     iniciarProducao(pedidoId) {
       const pedido = this.filaPedidos.find(p => p.id === pedidoId);
       if (pedido) {
