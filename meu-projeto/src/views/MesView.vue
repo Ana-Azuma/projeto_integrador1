@@ -53,73 +53,6 @@
 
     <!-- Content -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <!-- Dashboard Tab -->
-      <div v-if="abaAtiva === 'dashboard'">
-        <h2 class="text-xl font-bold text-gray-900 mb-6">Dashboard da Planta</h2>
-        
-        <!-- Métricas em Tempo Real -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div class="bg-white rounded-lg shadow p-6">
-            <div class="flex items-center">
-              <div class="p-3 bg-blue-100 rounded-lg">
-                <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-              </div>
-              <div class="ml-4">
-                <p class="text-sm font-medium text-gray-500">Temperatura</p>
-                <p class="text-2xl font-bold text-gray-900">{{ metricas.temperatura }}°C</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="bg-white rounded-lg shadow p-6">
-            <div class="flex items-center">
-              <div class="p-3 bg-green-100 rounded-lg">
-                <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              </div>
-              <div class="ml-4">
-                <p class="text-sm font-medium text-gray-500">Pressão</p>
-                <p class="text-2xl font-bold text-gray-900">{{ metricas.pressao }} bar</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="bg-white rounded-lg shadow p-6">
-            <div class="flex items-center">
-              <div class="p-3 bg-purple-100 rounded-lg">
-                <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div class="ml-4">
-                <p class="text-sm font-medium text-gray-500">Velocidade</p>
-                <p class="text-2xl font-bold text-gray-900">{{ metricas.velocidade }} RPM</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="bg-white rounded-lg shadow p-6">
-            <div class="flex items-center">
-              <div class="p-3 bg-green-100 rounded-lg">
-                <span class="w-8 h-8 flex items-center justify-center text-green-600 font-bold text-2xl">●</span>
-              </div>
-              <div class="ml-4">
-                <p class="text-sm font-medium text-gray-500">Status</p>
-                <p class="text-2xl font-bold text-green-600">{{ metricas.status }}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <p class="text-sm text-gray-500 text-center">
-          Última atualização: {{ metricas.ultimaAtualizacao }}
-          <button @click="atualizarDados" class="text-blue-600 hover:text-blue-700 ml-2">Atualizar</button>
-        </p>
-      </div>
-
       <!-- Fila de Produção Tab -->
       <div v-if="abaAtiva === 'producao'" class="space-y-6">
         <div class="flex justify-between items-center">
@@ -332,10 +265,9 @@ export default {
   name: 'MesView',
   data() {
     return {
-      abaAtiva: 'dashboard',
+      abaAtiva: 'producao',
       filtroHistorico: 'hoje',
       tabs: [
-        { id: 'dashboard', nome: 'Dashboard' },
         { id: 'producao', nome: 'Fila de Produção' },
         { id: 'historico', nome: 'Histórico' },
         { id: 'analytics', nome: 'Analytics' }
@@ -413,28 +345,40 @@ export default {
       const pedido = this.filaPedidos.find(p => p.id === pedidoId);
       if (pedido) {
         pedido.status = 'em_producao';
-        alert('Produção iniciada!');
+        pedido.iniciadoEm = new Date().toISOString();
+        alert('Produção iniciada! O CLP irá notificar quando finalizar.');
       }
     },
-    finalizarProducao(pedidoId) {
+    
+    // Esta função será chamada automaticamente quando o CLP enviar sinal de conclusão
+    finalizarProducaoPorCLP(pedidoId) {
       const index = this.filaPedidos.findIndex(p => p.id === pedidoId);
       if (index !== -1) {
         const pedido = this.filaPedidos[index];
         
+        // Calcular tempo de produção
+        const iniciadoEm = new Date(pedido.iniciadoEm);
+        const finalizadoEm = new Date();
+        const tempoMinutos = Math.round((finalizadoEm - iniciadoEm) / 1000 / 60);
+        
         // Adicionar ao histórico
         this.historicoPedidos.unshift({
           ...pedido,
-          finalizadoEm: new Date().toLocaleString('pt-BR'),
-          tempoProducao: '25 min'
+          finalizadoEm: finalizadoEm.toLocaleString('pt-BR'),
+          tempoProducao: `${tempoMinutos} min`,
+          status: 'concluido'
         });
         
         // Remover da fila
         this.filaPedidos.splice(index, 1);
         
+        // Atualizar analytics
         this.analytics.producaoHoje++;
-        alert('Produção finalizada! Estoque atualizado.');
+        
+        alert(`Pedido #${pedido.numero} finalizado pelo CLP! Estoque atualizado.`);
       }
     },
+    
     atualizarDados() {
       this.metricas.ultimaAtualizacao = new Date().toLocaleString('pt-BR', {
         day: '2-digit',
