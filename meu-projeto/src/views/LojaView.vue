@@ -97,10 +97,10 @@
                 </span>
               </div>
 
-              <!-- Quantidade e Adicionar -->
+              <!-- Quantidade e Adicionar - LIMITE MÁXIMO 3 UNIDADES -->
               <div class="flex items-center space-x-2">
                 <select v-model="quantidades[produto.id]" class="flex-1 px-2 py-1 text-sm border border-gray-300 rounded-md">
-                  <option v-for="n in Math.min(produto.estoque, 10)" :key="n" :value="n">{{ n }}</option>
+                  <option v-for="n in Math.min(produto.estoque, 3)" :key="n" :value="n">{{ n }}</option>
                 </select>
                 <button
                   @click="adicionarAoCarrinho(produto)"
@@ -113,6 +113,11 @@
                   Adicionar
                 </button>
               </div>
+              
+              <!-- Aviso de limite -->
+              <p class="mt-2 text-xs text-gray-500 text-center">
+                Limite: 3 unidades por produto
+              </p>
             </div>
           </div>
         </div>
@@ -178,8 +183,14 @@ export default defineComponent({
     const adicionarAoCarrinho = (produto) => {
       try {
         const quantidade = quantidades.value[produto.id] || 1
-        carrinhoStore.adicionarItem(produto, quantidade)
         
+        // VALIDAÇÃO: Máximo 3 unidades
+        if (quantidade > 3) {
+          showToastMessage('Você pode adicionar no máximo 3 unidades por produto!', 'error')
+          return
+        }
+        
+        carrinhoStore.adicionarItem(produto, quantidade)
         showToastMessage(`${produto.nome} adicionado ao carrinho!`)
       } catch (error) {
         showToastMessage(error.message, 'error')
