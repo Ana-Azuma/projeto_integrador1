@@ -80,13 +80,23 @@
             :key="pedido.id"
             class="bg-white rounded-lg shadow-md border-l-4 p-6 hover:shadow-lg transition"
             :class="{
-              'border-yellow-500': pedido.status === 'aguardando',
-              'border-blue-500': pedido.status === 'em_producao',
+              'border-yellow-500': pedido.status === 'aguardando' && pedido.tipo === 'pedido_cliente',
+              'border-blue-500': pedido.status === 'em_producao' && pedido.tipo === 'pedido_cliente',
+              'border-green-500': pedido.tipo === 'reposicao_estoque' && pedido.status === 'aguardando',
+              'border-purple-500': pedido.tipo === 'reposicao_estoque' && pedido.status === 'em_producao'
             }"
           >
             <div class="flex justify-between items-start mb-4">
               <div>
-                <h3 class="text-lg font-bold text-gray-900">#{{ pedido.numero }}</h3>
+                <div class="flex items-center gap-2">
+                  <h3 class="text-lg font-bold text-gray-900">#{{ pedido.numero }}</h3>
+                  <span
+                    v-if="pedido.tipo === 'reposicao_estoque'"
+                    class="px-2 py-0.5 bg-green-100 text-green-800 text-xs font-bold rounded"
+                  >
+                    📦 REPOSIÇÃO
+                  </span>
+                </div>
                 <p class="text-sm text-gray-500">{{ pedido.cliente }}</p>
               </div>
               <span
@@ -162,6 +172,7 @@
             <thead class="bg-gray-50">
               <tr>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pedido</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Itens</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Finalizado em</th>
@@ -172,6 +183,17 @@
             <tbody class="bg-white divide-y divide-gray-200">
               <tr v-for="pedido in historicoFiltrado" :key="pedido.id" class="hover:bg-gray-50">
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#{{ pedido.numero }}</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span
+                    class="px-2 py-1 text-xs font-semibold rounded-full"
+                    :class="{
+                      'bg-blue-100 text-blue-800': pedido.tipo === 'pedido_cliente',
+                      'bg-green-100 text-green-800': pedido.tipo === 'reposicao_estoque'
+                    }"
+                  >
+                    {{ pedido.tipo === 'reposicao_estoque' ? 'Reposição' : 'Cliente' }}
+                  </span>
+                </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ pedido.cliente }}</td>
                 <td class="px-6 py-4 text-sm text-gray-500">
                   <div class="max-w-xs">
@@ -184,6 +206,11 @@
                   <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
                     Concluído
                   </span>
+                </td>
+              </tr>
+              <tr v-if="historicoPedidos.length === 0">
+                <td colspan="7" class="px-6 py-12 text-center text-sm text-gray-500">
+                  Nenhum pedido finalizado
                 </td>
               </tr>
             </tbody>
@@ -266,6 +293,93 @@
         </div>
       </div>
     </main>
+
+    <!-- Modal Reposição de Estoque -->
+    <div v-if="modalReposicaoAberto" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+        <div class="p-6">
+          <div class="flex justify-between items-start mb-4">
+            <div>
+              <h3 class="text-lg font-bold text-gray-900">Adicionar Estoque</h3>
+              <p class="text-sm text-gray-500 mt-1">{{ produtoSelecionado?.nome }}</p>
+            </div>
+            <button @click="fecharModalReposicao" class="text-gray-400 hover:text-gray-600">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
+            <div class="flex items-center">
+              <svg class="w-5 h-5 text-blue-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+              </svg>
+              <div>
+                <p class="text-sm text-blue-700">
+                  <strong>Estoque Atual:</strong> {{ produtoSelecionado?.quantidade }} unidades
+                </p>
+                <p class="text-sm text-blue-700">
+                  <strong>Estoque Mínimo:</strong> {{ produtoSelecionado?.minimo }} unidades
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Quantidade a Adicionar *
+            </label>
+            <input
+              v-model.number="quantidadeReposicao"
+              type="number"
+              min="1"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Digite a quantidade"
+            />
+          </div>
+
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Motivo da Reposição
+            </label>
+            <select
+              v-model="motivoReposicao"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">Selecione um motivo</option>
+              <option value="compra">Compra de Fornecedor</option>
+              <option value="producao_interna">Produção Interna</option>
+              <option value="devolucao">Devolução de Cliente</option>
+              <option value="ajuste">Ajuste de Inventário</option>
+              <option value="outro">Outro</option>
+            </select>
+          </div>
+
+          <div class="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+            <p class="text-sm text-green-800">
+              <strong>Novo Estoque:</strong> {{ produtoSelecionado?.quantidade + (quantidadeReposicao || 0) }} unidades
+            </p>
+          </div>
+
+          <div class="flex gap-3">
+            <button
+              @click="fecharModalReposicao"
+              class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition font-semibold"
+            >
+              Cancelar
+            </button>
+            <button
+              @click="confirmarReposicao"
+              :disabled="!quantidadeReposicao || quantidadeReposicao <= 0"
+              class="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Confirmar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -288,28 +402,48 @@ export default {
         status: 'Operacional',
         ultimaAtualizacao: '30/09/2025, 19:40'
       },
+      estoqueProdutos: [],
+      modalReposicaoAberto: false,
+      produtoSelecionado: null,
+      quantidadeReposicao: 0,
+      motivoReposicao: '',
       filaPedidos: [
         {
           id: 1,
           numero: '001',
+          tipo: 'pedido_cliente',
           cliente: 'João Silva',
           status: 'aguardando',
           prioridade: 'Alta',
           dataHora: '30/09/2025 14:30',
           itens: [
-            { id: 1, nome: 'Produto A', quantidade: 2 },
-            { id: 2, nome: 'Produto B', quantidade: 1 }
+            { id: 1, nome: 'Suco de Laranja', quantidade: 2 },
+            { id: 2, nome: 'Suco de Maçã', quantidade: 1 }
           ]
         },
         {
           id: 2,
           numero: '002',
+          tipo: 'pedido_cliente',
           cliente: 'Maria Santos',
           status: 'em_producao',
           prioridade: 'Normal',
           dataHora: '30/09/2025 15:00',
           itens: [
-            { id: 3, nome: 'Produto C', quantidade: 3 }
+            { id: 3, nome: 'Suco de Uva', quantidade: 3 }
+          ]
+        },
+        {
+          id: 3,
+          numero: 'REP-001',
+          tipo: 'reposicao_estoque',
+          cliente: 'Sistema Admin',
+          status: 'aguardando',
+          prioridade: 'Alta',
+          dataHora: '30/09/2025 16:00',
+          itens: [
+            { id: 1, nome: 'Suco de Laranja', quantidade: 50 },
+            { id: 2, nome: 'Suco de Maçã', quantidade: 30 }
           ]
         }
       ],
@@ -320,16 +454,9 @@ export default {
         taxaSucesso: 98.5,
         eficiencia: 95,
         produtosMaisDemandados: [
-          { id: 1, nome: 'Produto A', quantidade: 125 },
-          { id: 2, nome: 'Produto B', quantidade: 98 },
-          { id: 3, nome: 'Produto C', quantidade: 87 },
-          { id: 4, nome: 'Produto D', quantidade: 76 },
-          { id: 5, nome: 'Produto E', quantidade: 65 },
-          { id: 6, nome: 'Produto F', quantidade: 54 },
-          { id: 7, nome: 'Produto G', quantidade: 43 },
-          { id: 8, nome: 'Produto H', quantidade: 32 },
-          { id: 9, nome: 'Produto I', quantidade: 28 },
-          { id: 10, nome: 'Produto J', quantidade: 21 }
+          { id: 1, nome: 'Suco de Laranja', quantidade: 125 },
+          { id: 2, nome: 'Suco de Maçã', quantidade: 98 },
+          { id: 3, nome: 'Suco de Uva', quantidade: 87 }
         ],
         producaoPorDia: [
           { dia: 'Seg', quantidade: 42 },
@@ -345,18 +472,14 @@ export default {
   },
   computed: {
     historicoFiltrado() {
-      // Aqui você pode implementar a lógica de filtro
       return this.historicoPedidos;
     }
   },
   methods: {
     sair() {
-      // Limpar dados de sessão/autenticação se houver
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       sessionStorage.clear();
-      
-      // Redirecionar para a raiz (home/login)
       window.location.href = '/';
     },
     
@@ -369,18 +492,23 @@ export default {
       }
     },
     
-    // Esta função será chamada automaticamente quando o CLP enviar sinal de conclusão
     finalizarProducaoPorCLP(pedidoId) {
       const index = this.filaPedidos.findIndex(p => p.id === pedidoId);
       if (index !== -1) {
         const pedido = this.filaPedidos[index];
         
-        // Calcular tempo de produção
         const iniciadoEm = new Date(pedido.iniciadoEm);
         const finalizadoEm = new Date();
         const tempoMinutos = Math.round((finalizadoEm - iniciadoEm) / 1000 / 60);
         
-        // Adicionar ao histórico
+        let mensagemEstoque = '';
+        
+        if (pedido.tipo === 'pedido_cliente') {
+          mensagemEstoque = 'Estoque SUBTRAÍDO (produto enviado ao cliente)';
+        } else if (pedido.tipo === 'reposicao_estoque') {
+          mensagemEstoque = 'Estoque ADICIONADO (reposição concluída)';
+        }
+        
         this.historicoPedidos.unshift({
           ...pedido,
           finalizadoEm: finalizadoEm.toLocaleString('pt-BR'),
@@ -388,13 +516,14 @@ export default {
           status: 'concluido'
         });
         
-        // Remover da fila
         this.filaPedidos.splice(index, 1);
-        
-        // Atualizar analytics
         this.analytics.producaoHoje++;
         
-        alert(`Pedido #${pedido.numero} finalizado pelo CLP! Estoque atualizado.`);
+        alert(
+          `✅ Pedido #${pedido.numero} finalizado pelo CLP!\n\n` +
+          `Tipo: ${pedido.tipo === 'pedido_cliente' ? 'PEDIDO DE CLIENTE' : 'REPOSIÇÃO DE ESTOQUE'}\n` +
+          `${mensagemEstoque}`
+        );
       }
     },
     
@@ -407,6 +536,43 @@ export default {
         minute: '2-digit'
       });
       alert('Dados atualizados!');
+    },
+    
+    abrirModalReposicao(produto) {
+      this.produtoSelecionado = produto;
+      this.quantidadeReposicao = 0;
+      this.motivoReposicao = '';
+      this.modalReposicaoAberto = true;
+    },
+    
+    fecharModalReposicao() {
+      this.modalReposicaoAberto = false;
+      this.produtoSelecionado = null;
+      this.quantidadeReposicao = 0;
+      this.motivoReposicao = '';
+    },
+    
+    confirmarReposicao() {
+      if (!this.produtoSelecionado || !this.quantidadeReposicao || this.quantidadeReposicao <= 0) {
+        alert('Digite uma quantidade válida!');
+        return;
+      }
+      
+      const produto = this.estoqueProdutos.find(p => p.id === this.produtoSelecionado.id);
+      if (produto) {
+        const quantidadeAnterior = produto.quantidade;
+        produto.quantidade += this.quantidadeReposicao;
+        
+        alert(
+          `✅ Estoque atualizado com sucesso!\n\n` +
+          `Produto: ${produto.nome}\n` +
+          `Quantidade Anterior: ${quantidadeAnterior} un\n` +
+          `Quantidade Adicionada: ${this.quantidadeReposicao} un\n` +
+          `Novo Estoque: ${produto.quantidade} un`
+        );
+      }
+      
+      this.fecharModalReposicao();
     }
   }
 };

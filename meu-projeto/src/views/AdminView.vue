@@ -311,7 +311,7 @@
       </div>
     </main>
 
-    <!-- Modal de Produto COM UPLOAD DE FOTO -->
+    <!-- Modal de Produto -->
     <div v-if="showProdutoModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
       <div class="bg-white rounded-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
         <h3 class="mb-4 text-lg font-semibold text-gray-900">
@@ -372,31 +372,20 @@
             ></textarea>
           </div>
 
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="form-label">Preço (R$)</label>
-              <input
-                v-model="produtoForm.preco"
-                type="number"
-                step="0.01"
-                min="0"
-                required
-                class="form-input"
-                placeholder="0,00"
-              />
-            </div>
-            <div>
-              <label class="form-label">Estoque</label>
-              <input
-                v-model="produtoForm.estoque"
-                type="number"
-                min="0"
-                required
-                class="form-input"
-                placeholder="0"
-              />
-            </div>
+          <div>
+            <label class="form-label">Preço (R$)</label>
+            <input
+              v-model="produtoForm.preco"
+              type="number"
+              step="0.01"
+              min="0"
+              required
+              class="form-input"
+              placeholder="0,00"
+            />
           </div>
+
+          <!-- CAMPO DE ESTOQUE REMOVIDO -->
 
           <div class="flex pt-4 space-x-3">
             <button type="button" @click="fecharProdutoModal" class="flex-1 btn-secondary">
@@ -488,34 +477,28 @@ export default defineComponent({
     const produtoStore = useProdutoStore()
     const pedidoStore = usePedidoStore()
 
-    // Estados
     const activeTab = ref('dashboard')
     const filtroStatus = ref('')
     
-    // Modals
     const showProdutoModal = ref(false)
     const showAprovacaoModal = ref(false)
     const showRejeicaoModal = ref(false)
     
-    // Forms
-    const produtoForm = ref({ nome: '', descricao: '', preco: '', estoque: '', foto: null })
+    const produtoForm = ref({ nome: '', descricao: '', preco: '', foto: null })
     const editandoProduto = ref(null)
     const observacoesAprovacao = ref('')
     const motivoRejeicao = ref('')
     const pedidoParaAprovar = ref(null)
     const pedidoParaRejeitar = ref(null)
 
-    // Ref para upload
     const fileInput = ref(null)
 
-    // Tabs
     const tabs = ref([
       { id: 'dashboard', nome: 'Dashboard' },
       { id: 'pedidos', nome: 'Pedidos' },
       { id: 'produtos', nome: 'Produtos' }
     ])
 
-    // Computed
     const user = computed(() => authStore.user)
     const produtos = computed(() => produtoStore.produtos)
     const pedidos = computed(() => pedidoStore.pedidos)
@@ -527,7 +510,6 @@ export default defineComponent({
       return pedidos.value.filter(p => p.status === filtroStatus.value)
     })
 
-    // Methods
     const carregarDados = async () => {
       await Promise.all([
         produtoStore.carregarProdutos(),
@@ -537,24 +519,20 @@ export default defineComponent({
 
     const carregarPedidos = () => pedidoStore.carregarPedidos()
 
-    // Upload de foto
     const handleFileUpload = (event) => {
       const file = event.target.files[0]
       if (!file) return
 
-      // Validar tamanho (2MB)
       if (file.size > 2 * 1024 * 1024) {
         alert('Arquivo muito grande. Máximo 2MB.')
         return
       }
 
-      // Validar tipo
       if (!file.type.startsWith('image/')) {
         alert('Apenas imagens são aceitas.')
         return
       }
 
-      // Converter para base64
       const reader = new FileReader()
       reader.onload = (e) => {
         produtoForm.value.foto = e.target.result
@@ -569,10 +547,9 @@ export default defineComponent({
       }
     }
 
-    // Produtos
     const novoProduto = () => {
       editandoProduto.value = null
-      produtoForm.value = { nome: '', descricao: '', preco: '', estoque: '', foto: null }
+      produtoForm.value = { nome: '', descricao: '', preco: '', foto: null }
       showProdutoModal.value = true
     }
 
@@ -580,8 +557,7 @@ export default defineComponent({
       editandoProduto.value = produto
       produtoForm.value = { 
         ...produto, 
-        preco: produto.preco.toString(), 
-        estoque: produto.estoque.toString(),
+        preco: produto.preco.toString(),
         foto: produto.foto || null
       }
       showProdutoModal.value = true
@@ -591,8 +567,7 @@ export default defineComponent({
       try {
         const dados = {
           ...produtoForm.value,
-          preco: parseFloat(produtoForm.value.preco),
-          estoque: parseInt(produtoForm.value.estoque)
+          preco: parseFloat(produtoForm.value.preco)
         }
 
         if (editandoProduto.value) {
@@ -620,10 +595,9 @@ export default defineComponent({
     const fecharProdutoModal = () => {
       showProdutoModal.value = false
       editandoProduto.value = null
-      produtoForm.value = { nome: '', descricao: '', preco: '', estoque: '', foto: null }
+      produtoForm.value = { nome: '', descricao: '', preco: '', foto: null }
     }
 
-    // Pedidos
     const aprovarPedido = (pedido) => {
       pedidoParaAprovar.value = pedido
       observacoesAprovacao.value = ''
@@ -666,7 +640,6 @@ export default defineComponent({
       motivoRejeicao.value = ''
     }
 
-    // Utils
     const formatarData = (dataISO) => {
       const data = new Date(dataISO)
       return data.toLocaleDateString('pt-BR', {
@@ -694,7 +667,6 @@ export default defineComponent({
       window.location.href = '/'
     }
 
-    // Lifecycle
     onMounted(() => {
       carregarDados()
     })
@@ -709,26 +681,18 @@ export default defineComponent({
       pedidosPendentes,
       pedidosFiltrados,
       estatisticas,
-      
-      // Modals
       showProdutoModal,
       showAprovacaoModal,
       showRejeicaoModal,
-      
-      // Forms
       produtoForm,
       editandoProduto,
       observacoesAprovacao,
       motivoRejeicao,
       pedidoParaAprovar,
       pedidoParaRejeitar,
-
-      // Upload
       fileInput,
       handleFileUpload,
       removerFoto,
-
-      // Methods
       carregarPedidos,
       novoProduto,
       editarProduto,

@@ -26,14 +26,7 @@ let PRODUTOS_MOCK = [
     estoque: 12,
     foto: null
   },
-  { 
-    id: 4, 
-    nome: 'Suco Misto', 
-    descricao: 'Blend de frutas tropicais 500ml', 
-    preco: 11.00, 
-    estoque: 8,
-    foto: null
-  }
+  
 ]
 
 export const produtoService = {
