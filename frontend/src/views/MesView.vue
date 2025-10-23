@@ -5,8 +5,8 @@
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div class="flex justify-between items-center">
           <div>
-            <h1 class="text-2xl font-bold text-gray-900">Sistema MES - Smart Factory 4.0</h1>
-            <p class="text-sm text-gray-500 mt-1">Manufacturing Execution System</p>
+            <h1 class="text-2xl font-bold text-gray-900" ><img src="/Imagens/logo.png" alt="Logo" class="inline w-10 h-10 mr-2">  Sistema MES - Smart Factory 4.0</h1>
+            <!--<p class="text-sm text-gray-500 mt-1">Manufacturing Execution System</p> -->
           </div>
           <div class="flex items-center gap-4">
             <div class="flex items-center gap-2">
@@ -15,7 +15,7 @@
             </div>
             <button 
               @click="atualizarDados" 
-              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-800 transition"
             >
               Atualizar
             </button>
@@ -44,14 +44,14 @@
             :class="[
               'py-4 px-1 border-b-2 font-medium text-sm transition',
               abaAtiva === tab.id
-                ? 'border-blue-600 text-blue-600'
+                ? 'border-orange-600 text-orange-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             ]"
           >
             {{ tab.nome }}
             <span 
               v-if="tab.id === 'producao' && filaPedidos.length > 0"
-              class="ml-2 px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full"
+              class="ml-2 px-2 py-0.5 text-xs bg-orange-100 text-orange-800 rounded-full"
             >
               {{ filaPedidos.length }}
             </span>
@@ -126,13 +126,13 @@
               <button
                 v-if="pedido.status === 'aguardando'"
                 @click="iniciarProducao(pedido.id)"
-                class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm font-semibold"
+                class="flex-1 bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-800 transition text-sm font-semibold"
               >
                 Iniciar Produção
               </button>
               <div
                 v-if="pedido.status === 'em_producao'"
-                class="flex-1 bg-blue-100 text-blue-800 px-4 py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-2"
+                class="flex-1 bg-orange-100 text-orange-800 px-4 py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-2"
               >
                 <svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -248,7 +248,7 @@
 
         <!-- Produtos Mais Demandados -->
         <div class="bg-white rounded-lg shadow p-6">
-          <h3 class="text-lg font-bold text-gray-900 mb-4">Top 10 Produtos Mais Demandados</h3>
+          <h3 class="text-lg font-bold text-gray-900 mb-4">Top 3 Produtos Mais Demandados</h3>
           <div class="space-y-3">
             <div
               v-for="(produto, index) in analytics.produtosMaisDemandados"
@@ -263,7 +263,7 @@
                 </div>
                 <div class="w-full bg-gray-200 rounded-full h-2">
                   <div
-                    class="bg-blue-600 h-2 rounded-full transition-all"
+                    class="bg-orange-600 h-2 rounded-full transition-all"
                     :style="{ width: `${(produto.quantidade / analytics.produtosMaisDemandados[0].quantidade) * 100}%` }"
                   ></div>
                 </div>
@@ -281,7 +281,7 @@
               :key="dia.dia"
               class="flex-1 flex flex-col items-center"
             >
-              <div class="w-full bg-blue-600 rounded-t hover:bg-blue-700 transition cursor-pointer relative group"
+              <div class="w-full bg-orange-600 rounded-t hover:bg-orange-700 transition cursor-pointer relative group"
                    :style="{ height: `${(dia.quantidade / Math.max(...analytics.producaoPorDia.map(d => d.quantidade))) * 100}%` }">
                 <span class="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition">
                   {{ dia.quantidade }}

@@ -1,19 +1,16 @@
 <template>
-  <div class="flex items-center justify-center min-h-screen p-4 bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-900">
-    <div class="w-full max-w-md">
+  <div class="flex items-center justify-center min-h-screen p-4 bg-[url(C:\Users\dsadm\Documents\projeto_integrador1\frontend\Imagens\foto_2.jpg)] bg-cover bg-center">
+    <div class="w-full max-w-md ">
       <!-- Logo/Header -->
-      <div class="mb-8 text-center">
-        <div class="inline-flex items-center justify-center w-16 h-16 mb-4 bg-white rounded-full">
-          <svg class="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-          </svg>
-        </div>
-        <h1 class="text-3xl font-bold text-white">Smart Factory</h1>
-        <p class="mt-2 text-blue-200">Loja Virtual + MES Planta 4.0</p>
+      <div class="mb-8 text-center"> 
+        <img src="/Imagens/logo.png" alt="Logo" class="w-40 h-30  mx-auto mb-4">
+      
+      <h1 class="text-3xl font-bold text-orange-500" style="-webkit-text-stroke: 1px black;">Dionísio Sucos</h1>
+        <!-- <p class="mt-2 text-black glow-pulse">Loja Virtual + MES Planta 4.0</p> -->
       </div>
 
       <!-- Card de Login -->
-      <div class="p-8 bg-white shadow-2xl rounded-xl">
+      <div class="p-8 bg-yellow-300 shadow-2xl rounded-xl opacity-95">
         <h2 class="mb-6 text-2xl font-bold text-center text-gray-900">Entrar no Sistema</h2>
         
         <form @submit.prevent="handleLogin" class="space-y-6">

@@ -4,7 +4,8 @@
     <header class="bg-white border-b shadow-sm">
       <div class="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-16">
-          <h1 class="text-xl font-bold text-gray-900">Painel Administrativo</h1>
+          
+          <h1 class="text-xl font-bold text-gray-900" ><img src="/Imagens/logo.png" alt="Logo" class="inline w-10 h-10 mr-2">Painel Administrativo</h1>
           
           <div class="flex items-center space-x-4">
             <span class="text-sm text-gray-700">{{ user?.nome }}</span>
@@ -24,7 +25,7 @@
           :class="[
             'py-4 px-1 border-b-2 font-medium text-sm',
             activeTab === tab.id
-              ? 'border-blue-500 text-blue-600'
+              ? 'border-orange-600 text-orange-600'
               : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
           ]"
         >
@@ -388,10 +389,10 @@
           <!-- CAMPO DE ESTOQUE REMOVIDO -->
 
           <div class="flex pt-4 space-x-3">
-            <button type="button" @click="fecharProdutoModal" class="flex-1 btn-secondary">
+            <button type="button" @click="fecharProdutoModal" class="inline-flex items-center justify-center btn-secondary">
               Cancelar
             </button>
-            <button type="submit" class="flex-1 btn-primary">
+            <button type="submit" class="inline-flex items-center justify-center btn-primary">
               {{ editandoProduto ? 'Atualizar' : 'Criar' }}
             </button>
           </div>
