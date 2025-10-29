@@ -1,4 +1,4 @@
-# Smart Factory - Loja Virtual + MES
+# DIONISIO SUCOS - Loja Virtual + MES
 
 Sistema integrado de **Loja Virtual** e **MES (Manufacturing Execution System)** para a Planta Smart 4.0 do SENAI Roberto Mange.
 
