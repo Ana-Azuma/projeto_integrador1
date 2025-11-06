@@ -9,13 +9,10 @@ export const useCarrinhoStore = defineStore('carrinho', {
   }),
 
   getters: {
-    totalItens: (state) =>
-      state.itens.reduce((total, item) => total + item.quantidade, 0),
+    totalItens: (state) => state.itens.reduce((total, item) => total + item.quantidade, 0),
 
     valorTotal: (state) => {
-      return state.itens.reduce((total, item) => {
-        return total + (item.produto.preco * item.quantidade)
-      }, 0)
+      return state.itens.reduce((total, item) => total + item.produto.preco * item.quantidade, 0)
     },
 
     temItens: (state) => state.itens.length > 0
@@ -31,29 +28,25 @@ export const useCarrinhoStore = defineStore('carrinho', {
         throw new Error('Produto não encontrado')
       }
 
-      // ✅ Garante que o estoque seja um número válido
       const estoqueAtual = Number(produtoCompleto.estoque) || 0
       if (estoqueAtual < quantidade) {
         throw new Error(`Estoque insuficiente. Disponível: ${estoqueAtual}`)
       }
 
-      const itemExistente = this.itens.find(item =>
-        item.produto._id === produto._id ||
-        item.produto.id === produto.id
+      const itemExistente = this.itens.find(
+        item => item.produtoId === (produto._id || produto.id)
       )
 
       if (itemExistente) {
         const novaQuantidade = itemExistente.quantidade + quantidade
-
         if (estoqueAtual < novaQuantidade) {
           throw new Error(`Estoque insuficiente. Disponível: ${estoqueAtual}`)
         }
-
         itemExistente.quantidade = novaQuantidade
       } else {
-        // ✅ Garante que o produto seja armazenado com ID consistente
         this.itens.push({
-          produto: { ...produtoCompleto, _id: produtoCompleto._id || produtoCompleto.id },
+          produtoId: produtoCompleto._id || produtoCompleto.id,
+          produto: produtoCompleto,
           quantidade
         })
       }
@@ -62,9 +55,7 @@ export const useCarrinhoStore = defineStore('carrinho', {
     },
 
     removerItem(produtoId) {
-      this.itens = this.itens.filter(item =>
-        item.produto._id !== produtoId && item.produto.id !== produtoId
-      )
+      this.itens = this.itens.filter(item => item.produtoId !== produtoId)
       this.salvarCarrinho()
     },
 
@@ -87,11 +78,7 @@ export const useCarrinhoStore = defineStore('carrinho', {
         throw new Error(`Estoque insuficiente. Disponível: ${estoqueAtual}`)
       }
 
-      const item = this.itens.find(
-        item =>
-          item.produto._id === produtoId || item.produto.id === produtoId
-      )
-
+      const item = this.itens.find(item => item.produtoId === produtoId)
       if (item) {
         item.quantidade = quantidade
         this.salvarCarrinho()
@@ -113,7 +100,7 @@ export const useCarrinhoStore = defineStore('carrinho', {
 
       this.itens.forEach(item => {
         const produto = produtoStore.produtos.find(
-          p => p._id === item.produto._id || p.id === item.produto.id
+          p => p._id === item.produtoId || p.id === item.produtoId
         )
 
         const estoqueAtual = Number(produto?.estoque) || 0
