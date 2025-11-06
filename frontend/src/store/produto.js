@@ -10,7 +10,12 @@ export const useProdutoStore = defineStore('produto', {
 
   getters: {
     produtosDisponiveis: (state) => state.produtos.filter(p => p.estoque >= 0),
-    getProdutoById: (state) => (id) => state.produtos.find(p => p.id === id)
+
+    // ✅ Corrigido: agora busca tanto por _id quanto por id
+    getProdutoById: (state) => (id) => {
+      if (!id) return null
+      return state.produtos.find(p => p._id === id || p.id === id)
+    }
   },
 
   actions: {
@@ -38,7 +43,6 @@ export const useProdutoStore = defineStore('produto', {
         const novoProduto = await produtoService.criar(produto)
         console.log('Produto criado com sucesso:', novoProduto)
         
-        // Adicionar à lista local
         this.produtos.push(novoProduto)
         console.log('Lista de produtos atualizada:', this.produtos)
         
@@ -60,18 +64,15 @@ export const useProdutoStore = defineStore('produto', {
         const produtoAtualizado = await produtoService.atualizar(id, dadosAtualizados)
         console.log('Produto atualizado no service:', produtoAtualizado)
         
-        // Encontrar e atualizar na lista local
-        const index = this.produtos.findIndex(p => p.id === parseInt(id))
+        // ✅ Corrigido: comparação com _id ou id
+        const index = this.produtos.findIndex(p => p._id === id || p.id === id)
         console.log('Índice do produto na lista:', index)
         
         if (index !== -1) {
-          // Substituir completamente o produto
           this.produtos[index] = { ...produtoAtualizado }
           console.log('Produto atualizado na store:', this.produtos[index])
-          console.log('Lista completa após atualização:', this.produtos)
         } else {
           console.warn('Produto não encontrado na lista local para atualização')
-          // Recarregar todos os produtos se não encontrou
           await this.carregarProdutos()
         }
         
@@ -92,11 +93,11 @@ export const useProdutoStore = defineStore('produto', {
         console.log('Excluindo produto ID:', id)
         await produtoService.excluir(id)
         
-        // Remover da lista local
-        const index = this.produtos.findIndex(p => p.id === parseInt(id))
+        // ✅ Corrigido: comparação com _id ou id
+        const index = this.produtos.findIndex(p => p._id === id || p.id === id)
         if (index !== -1) {
           this.produtos.splice(index, 1)
-          console.log('Produto removido da lista. Lista atualizada:', this.produtos)
+          console.log('Produto removido da lista:', this.produtos)
         }
         
         return { success: true }
@@ -112,14 +113,14 @@ export const useProdutoStore = defineStore('produto', {
     async atualizarEstoque(id, novaQuantidade) {
       try {
         console.log('Atualizando estoque do produto ID:', id, 'para:', novaQuantidade)
-        const produto = this.getProdutoById(parseInt(id))
-        
+        const produto = this.getProdutoById(id) // ✅ Corrigido
+
         if (produto) {
-          const novoEstoque = Math.max(0, produto.estoque + novaQuantidade) // Evitar estoque negativo
+          const novoEstoque = Math.max(0, produto.estoque + novaQuantidade)
           const produtoAtualizado = await produtoService.atualizarEstoque(id, novoEstoque)
           
-          // Atualizar na store
-          const index = this.produtos.findIndex(p => p.id === parseInt(id))
+          // ✅ Corrigido: comparação com _id ou id
+          const index = this.produtos.findIndex(p => p._id === id || p.id === id)
           if (index !== -1) {
             this.produtos[index] = { ...this.produtos[index], estoque: novoEstoque }
             console.log('Estoque atualizado na store:', this.produtos[index])
@@ -135,7 +136,6 @@ export const useProdutoStore = defineStore('produto', {
       }
     },
 
-    // Método para forçar atualização dos dados
     async recarregarProdutos() {
       console.log('Forçando recarregamento dos produtos...')
       await this.carregarProdutos()

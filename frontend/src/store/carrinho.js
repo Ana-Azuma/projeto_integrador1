@@ -9,8 +9,9 @@ export const useCarrinhoStore = defineStore('carrinho', {
   }),
 
   getters: {
-    totalItens: (state) => state.itens.reduce((total, item) => total + item.quantidade, 0),
-    
+    totalItens: (state) =>
+      state.itens.reduce((total, item) => total + item.quantidade, 0),
+
     valorTotal: (state) => {
       return state.itens.reduce((total, item) => {
         return total + (item.produto.preco * item.quantidade)
@@ -23,46 +24,56 @@ export const useCarrinhoStore = defineStore('carrinho', {
   actions: {
     adicionarItem(produto, quantidade = 1) {
       const produtoStore = useProdutoStore()
-      const produtoCompleto = produtoStore.getProdutoById(produto.id)
-      
+      const produtoCompleto = produtoStore.getProdutoById(produto._id || produto.id)
+
       if (!produtoCompleto) {
+        console.error('Produto não encontrado na store:', produto)
         throw new Error('Produto não encontrado')
       }
 
-      if (produtoCompleto.estoque < quantidade) {
-        throw new Error('Estoque insuficiente')
+      // ✅ Garante que o estoque seja um número válido
+      const estoqueAtual = Number(produtoCompleto.estoque) || 0
+      if (estoqueAtual < quantidade) {
+        throw new Error(`Estoque insuficiente. Disponível: ${estoqueAtual}`)
       }
 
-      const itemExistente = this.itens.find(item => item.produto.id === produto.id)
-      
+      const itemExistente = this.itens.find(item =>
+        item.produto._id === produto._id ||
+        item.produto.id === produto.id
+      )
+
       if (itemExistente) {
         const novaQuantidade = itemExistente.quantidade + quantidade
-        
-        if (produtoCompleto.estoque < novaQuantidade) {
-          throw new Error('Estoque insuficiente para a quantidade solicitada')
+
+        if (estoqueAtual < novaQuantidade) {
+          throw new Error(`Estoque insuficiente. Disponível: ${estoqueAtual}`)
         }
-        
+
         itemExistente.quantidade = novaQuantidade
       } else {
+        // ✅ Garante que o produto seja armazenado com ID consistente
         this.itens.push({
-          produto: produtoCompleto,
+          produto: { ...produtoCompleto, _id: produtoCompleto._id || produtoCompleto.id },
           quantidade
         })
       }
-      
+
       this.salvarCarrinho()
     },
 
     removerItem(produtoId) {
-      this.itens = this.itens.filter(item => item.produto.id !== produtoId)
+      this.itens = this.itens.filter(item =>
+        item.produto._id !== produtoId && item.produto.id !== produtoId
+      )
       this.salvarCarrinho()
     },
 
     atualizarQuantidade(produtoId, quantidade) {
       const produtoStore = useProdutoStore()
       const produto = produtoStore.getProdutoById(produtoId)
-      
+
       if (!produto) {
+        console.error('Produto não encontrado ao atualizar quantidade:', produtoId)
         throw new Error('Produto não encontrado')
       }
 
@@ -71,11 +82,16 @@ export const useCarrinhoStore = defineStore('carrinho', {
         return
       }
 
-      if (produto.estoque < quantidade) {
-        throw new Error('Estoque insuficiente')
+      const estoqueAtual = Number(produto.estoque) || 0
+      if (estoqueAtual < quantidade) {
+        throw new Error(`Estoque insuficiente. Disponível: ${estoqueAtual}`)
       }
 
-      const item = this.itens.find(item => item.produto.id === produtoId)
+      const item = this.itens.find(
+        item =>
+          item.produto._id === produtoId || item.produto.id === produtoId
+      )
+
       if (item) {
         item.quantidade = quantidade
         this.salvarCarrinho()
@@ -94,14 +110,18 @@ export const useCarrinhoStore = defineStore('carrinho', {
     verificarDisponibilidade() {
       const produtoStore = useProdutoStore()
       const itensIndisponiveis = []
-      
+
       this.itens.forEach(item => {
-        const produto = produtoStore.produtos.find(p => p.id === item.produto.id)
-        if (!produto || produto.estoque < item.quantidade) {
+        const produto = produtoStore.produtos.find(
+          p => p._id === item.produto._id || p.id === item.produto.id
+        )
+
+        const estoqueAtual = Number(produto?.estoque) || 0
+        if (!produto || estoqueAtual < item.quantidade) {
           itensIndisponiveis.push(item)
         }
       })
-      
+
       return itensIndisponiveis
     }
   }
