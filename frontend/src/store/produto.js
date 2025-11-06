@@ -9,7 +9,7 @@ export const useProdutoStore = defineStore('produto', {
   }),
 
   getters: {
-    produtosDisponiveis: (state) => state.produtos.filter(p => p.estoque > 0),
+    produtosDisponiveis: (state) => state.produtos.filter(p => p.estoque >= 0),
     getProdutoById: (state) => (id) => state.produtos.find(p => p.id === id)
   },
 

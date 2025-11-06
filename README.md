@@ -22,3 +22,31 @@ Sistema integrado de **Loja Virtual** e **MES (Manufacturing Execution System)**
 - Controle de ordens de produção
 - Integração com Planta Smart 4.0 via OPC UA
 - Monitoramento de estoque e bloqueios automáticos
+
+
+ROTA PARA CADASTRAR USUARIOS
+http://localhost:3001/api/auth/register
+{
+  "nome": "Ana Cliente",
+  "email": "cliente@test.com",
+  "senha": "123456",
+  "tipo": "cliente"
+}
+
+{
+  "nome": "Moises ADM",
+  "email": "admin@test.com",
+  "senha": "123456",
+  "tipo": "admin"
+}
+
+{
+  "nome": "Willian MES",
+  "email": "mes@test.com",
+  "senha": "123456",
+  "tipo": "admin"
+}
+
+http://localhost:3001/api/produtos
+
+http://localhost:3001/api/produtos/690bd47e1b710f0e0d723a24
