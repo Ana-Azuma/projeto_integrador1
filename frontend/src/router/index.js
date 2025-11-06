@@ -40,6 +40,19 @@ const routes = [
     meta: { requiresAuth: true, roles: ['admin'] }
   },
   {
+    path: '/admin/pedidos',
+    name: 'AdminPedidos',
+    component: PedidosView,
+    meta: { requiresAuth: true, roles: ['admin'] }
+  },
+  {
+    path: '/admin/pedidos',
+    name: 'AdminPedidos',
+    component: PedidosView,
+    meta: { requiresAuth: true, roles: ['admin'] }
+  },
+    
+  {
     path: '/mes',
     name: 'MES',
     component: MesView,
