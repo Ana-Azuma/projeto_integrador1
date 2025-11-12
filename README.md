@@ -23,28 +23,35 @@ Sistema integrado de **Loja Virtual** e **MES (Manufacturing Execution System)**
 - Integração com Planta Smart 4.0 via OPC UA
 - Monitoramento de estoque e bloqueios automáticos
 
+-----------------
+Guia de instalação
+cd backend -> npm run dev
+cd frontend -> npm run dev
+ir no mongodb e comunicar
 
-ROTA PARA CADASTRAR USUARIOS
+Thunder Client:
 http://localhost:3001/api/auth/register
-{
-  "nome": "Ana Cliente",
-  "email": "cliente@test.com",
-  "senha": "123456",
+Método Post para cadastrar perfis de usuários:
+{ 
+  "nome": "Ana Cliente", 
+  "email": "cliente@test.com", 
+  "senha": "123456", 
   "tipo": "cliente"
+  
 }
 
-{
-  "nome": "Moises ADM",
-  "email": "admin@test.com",
-  "senha": "123456",
-  "tipo": "admin"
+{ 
+"nome": "Moises ADM", 
+"email": "admin@test.com", 
+"senha": "123456", 
+"tipo": "admin" 
 }
 
-{
-  "nome": "Willian MES",
-  "email": "mes@test.com",
-  "senha": "123456",
-  "tipo": "admin"
+{ 
+  "nome": "Willian MES", 
+"email": "mes@test.com", 
+"senha": "123456", 
+"tipo": "admin" 
 }
 
 http://localhost:3001/api/produtos
