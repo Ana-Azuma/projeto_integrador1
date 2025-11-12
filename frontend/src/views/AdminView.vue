@@ -24,7 +24,7 @@
           :key="tab.id"
           @click="activeTab = tab.id"
           :class="[
-            'py-4 px-1 border-b-2 font-medium text-sm',
+            'py-4 px-1 border-b-2 font-medium text-sm transition-colors',
             activeTab === tab.id
               ? 'border-orange-600 text-orange-600'
               : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -80,6 +80,13 @@
               </button>
             </div>
           </div>
+        </div>
+
+        <div v-else class="p-12 text-center bg-white rounded-lg shadow">
+          <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <p class="text-gray-500">Nenhum pedido pendente de aprovação</p>
         </div>
       </div>
 
@@ -165,6 +172,74 @@
           </div>
         </div>
       </div>
+
+      <!-- Gerenciar Produtos -->
+      <div v-if="activeTab === 'produtos'" class="space-y-6">
+        <div class="flex items-center justify-between">
+          <h2 class="text-2xl font-bold text-gray-900">Gerenciar Produtos</h2>
+          <button @click="abrirModalProduto" class="btn-primary">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            Novo Produto
+          </button>
+        </div>
+
+        <!-- Lista de Produtos -->
+        <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div
+            v-for="produto in produtos"
+            :key="produto._id"
+            class="overflow-hidden transition-shadow card hover:shadow-md"
+          >
+            <div class="aspect-w-16 aspect-h-9 bg-gray-200">
+              <img
+                v-if="produto.imagem"
+                :src="produto.imagem"
+                :alt="produto.nome"
+                class="object-cover w-full h-48"
+              />
+              <div v-else class="flex items-center justify-center h-48 bg-gray-300">
+                <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+              </div>
+            </div>
+            <div class="p-4">
+              <div class="flex items-start justify-between mb-2">
+                <h3 class="font-semibold text-gray-900">{{ produto.nome }}</h3>
+                <span
+                  class="px-2 py-1 text-xs font-medium rounded-full"
+                  :class="produto.ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"
+                >
+                  {{ produto.ativo ? 'Ativo' : 'Inativo' }}
+                </span>
+              </div>
+              <p class="mb-2 text-sm text-gray-600">{{ produto.categoria }}</p>
+              <p class="mb-3 text-sm text-gray-500 line-clamp-2">{{ produto.descricao }}</p>
+              <div class="flex items-center justify-between pt-3 border-t">
+                <div>
+                  <p class="text-lg font-bold text-gray-900">R$ {{ produto.preco.toFixed(2) }}</p>
+                  <p class="text-xs text-gray-500">Estoque: {{ produto.estoque }}</p>
+                </div>
+                <div class="flex space-x-2">
+                  <button @click="editarProduto(produto)" class="p-2 text-blue-600 hover:bg-blue-50 rounded">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                  </button>
+                  <button @click="toggleAtivoProduto(produto)" class="p-2 rounded" :class="produto.ativo ? 'text-red-600 hover:bg-red-50' : 'text-green-600 hover:bg-green-50'">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path v-if="produto.ativo" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+                      <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </main>
 
     <!-- Modal Aprovação -->
@@ -209,6 +284,91 @@
         </form>
       </div>
     </div>
+
+    <!-- Modal Produto -->
+    <div v-if="showProdutoModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+      <div class="w-full max-w-2xl p-6 bg-white rounded-lg">
+        <h3 class="mb-4 text-lg font-semibold text-gray-900">
+          {{ produtoEditando ? 'Editar Produto' : 'Novo Produto' }}
+        </h3>
+        <form @submit.prevent="salvarProduto" class="space-y-4">
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+              <label class="block mb-1 text-sm font-medium text-gray-700">Nome</label>
+              <input
+                v-model="formProduto.nome"
+                type="text"
+                required
+                class="form-input"
+                placeholder="Nome do produto"
+              />
+            </div>
+            <div>
+              <label class="block mb-1 text-sm font-medium text-gray-700">Categoria</label>
+              <input
+                v-model="formProduto.categoria"
+                type="text"
+                required
+                class="form-input"
+                placeholder="Categoria"
+              />
+            </div>
+            <div>
+              <label class="block mb-1 text-sm font-medium text-gray-700">Preço (R$)</label>
+              <input
+                v-model.number="formProduto.preco"
+                type="number"
+                step="0.01"
+                required
+                class="form-input"
+                placeholder="0.00"
+              />
+            </div>
+            <div>
+              <label class="block mb-1 text-sm font-medium text-gray-700">Estoque</label>
+              <input
+                v-model.number="formProduto.estoque"
+                type="number"
+                required
+                class="form-input"
+                placeholder="0"
+              />
+            </div>
+          </div>
+          <div>
+            <label class="block mb-1 text-sm font-medium text-gray-700">Descrição</label>
+            <textarea
+              v-model="formProduto.descricao"
+              class="form-input"
+              rows="3"
+              placeholder="Descrição do produto"
+            ></textarea>
+          </div>
+          <div>
+            <label class="block mb-1 text-sm font-medium text-gray-700">URL da Imagem</label>
+            <input
+              v-model="formProduto.imagem"
+              type="url"
+              class="form-input"
+              placeholder="https://..."
+            />
+          </div>
+          <div class="flex items-center">
+            <input
+              v-model="formProduto.ativo"
+              type="checkbox"
+              id="ativo"
+              class="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+            />
+            <label for="ativo" class="ml-2 text-sm text-gray-700">Produto ativo</label>
+          </div>
+          <div class="flex space-x-3">
+            <button type="button" @click="fecharModalProduto" class="flex-1 btn-secondary">Cancelar</button>
+            <button type="submit" class="flex-1 btn-primary">Salvar Produto</button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -228,14 +388,32 @@ const pedidos = computed(() => pedidoStore.pedidos)
 const pedidosPendentes = computed(() => pedidoStore.pedidosPorStatus('Pendente de Aprovação'))
 const estatisticas = computed(() => pedidoStore.estatisticasPedidos)
 
+// ===== DEFINIÇÃO DAS TABS - ERA ISSO QUE ESTAVA FALTANDO! =====
+const tabs = [
+  { id: 'dashboard', nome: 'Dashboard' },
+  { id: 'pedidos', nome: 'Pedidos' },
+  { id: 'produtos', nome: 'Produtos' }
+]
+
 const activeTab = ref('dashboard')
 const filtroStatus = ref('')
 const showAprovacaoModal = ref(false)
 const showRejeicaoModal = ref(false)
+const showProdutoModal = ref(false)
 const observacoesAprovacao = ref('')
 const motivoRejeicao = ref('')
 const pedidoParaAprovar = ref(null)
 const pedidoParaRejeitar = ref(null)
+const produtoEditando = ref(null)
+const formProduto = ref({
+  nome: '',
+  descricao: '',
+  preco: 0,
+  categoria: '',
+  estoque: 0,
+  imagem: '',
+  ativo: true
+})
 
 const estatCards = computed(() => [
   { label: 'Pendentes', value: estatisticas.value.pendentes, icon: '<svg class="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>' },
@@ -264,18 +442,67 @@ const rejeitarPedido = (pedido) => {
 
 const confirmarAprovacao = async () => {
   await pedidoStore.aprovarPedido(pedidoParaAprovar.value._id, observacoesAprovacao.value)
-  showAprovacaoModal.value = false
+  fecharAprovacaoModal()
+  observacoesAprovacao.value = ''
 }
 
 const confirmarRejeicao = async () => {
   await pedidoStore.rejeitarPedido(pedidoParaRejeitar.value._id, motivoRejeicao.value)
-  showRejeicaoModal.value = false
+  fecharRejeicaoModal()
+  motivoRejeicao.value = ''
 }
 
-const fecharAprovacaoModal = () => showAprovacaoModal.value = false
-const fecharRejeicaoModal = () => showRejeicaoModal.value = false
+const fecharAprovacaoModal = () => {
+  showAprovacaoModal.value = false
+  pedidoParaAprovar.value = null
+}
+
+const fecharRejeicaoModal = () => {
+  showRejeicaoModal.value = false
+  pedidoParaRejeitar.value = null
+}
+
+// ===== FUNÇÕES DE PRODUTOS =====
+const abrirModalProduto = () => {
+  produtoEditando.value = null
+  formProduto.value = {
+    nome: '',
+    descricao: '',
+    preco: 0,
+    categoria: '',
+    estoque: 0,
+    imagem: '',
+    ativo: true
+  }
+  showProdutoModal.value = true
+}
+
+const editarProduto = (produto) => {
+  produtoEditando.value = produto
+  formProduto.value = { ...produto }
+  showProdutoModal.value = true
+}
+
+const salvarProduto = async () => {
+  if (produtoEditando.value) {
+    await produtoStore.atualizarProduto(produtoEditando.value._id, formProduto.value)
+  } else {
+    await produtoStore.criarProduto(formProduto.value)  
+  }
+  fecharModalProduto()
+}
+
+const toggleAtivoProduto = async (produto) => {
+  await produtoStore.atualizarProduto(produto._id, { ativo: !produto.ativo })
+}
+
+const fecharModalProduto = () => {
+  showProdutoModal.value = false
+  produtoEditando.value = null
+}
 
 const formatarData = (data) => new Date(data).toLocaleString('pt-BR')
+
 const getStatusClass = (status) => ({
   'Pendente de Aprovação': 'bg-yellow-100 text-yellow-800',
   'Aprovado': 'bg-green-100 text-green-800',
@@ -289,5 +516,34 @@ const logout = () => {
   window.location.href = '/'
 }
 
-onMounted(() => pedidoStore.carregarPedidos())
+onMounted(() => {
+  pedidoStore.carregarPedidos()
+  produtoStore.carregarProdutos()
+})
 </script>
+
+<style scoped>
+.card {
+  @apply bg-white p-6 rounded-lg shadow;
+}
+
+.btn-primary {
+  @apply inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-colors;
+}
+
+.btn-secondary {
+  @apply inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-colors;
+}
+
+.btn-success {
+  @apply inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors;
+}
+
+.btn-danger {
+  @apply inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors;
+}
+
+.form-input {
+  @apply block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm;
+}
+</style>
