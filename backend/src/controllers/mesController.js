@@ -1,60 +1,100 @@
+// backend/controllers/mesController.js
 import OrdemProducao from '../models/OrdemProducao.js'
+import Pedido from '../models/Pedido.js'
 import Produto from '../models/Produto.js'
+import opcuaService from '../services/opcuaService.js'
 
-// Variáveis simuladas da planta
-let variaveisPlanta = {
-  temperatura: 25.5,
-  pressao: 1.2,
-  velocidade: 80,
-  status: 'Operacional',
-  producaoAtual: 0,
-  ultimaAtualizacao: new Date().toISOString()
-}
-
+// =============================
+// 📦 RECEBER PEDIDOS APROVADOS
+// =============================
 export const receberPedidoAprovado = async (req, res) => {
   try {
-    const { id, clienteNome, itens, valorTotal, prioridade } = req.body
+    const { pedidoId } = req.body
 
+    // Buscar pedido aprovado
+    const pedido = await Pedido.findById(pedidoId).populate('itens.produto')
+    
+    if (!pedido) {
+      return res.status(404).json({ message: 'Pedido não encontrado' })
+    }
+
+    if (pedido.status !== 'Aprovado') {
+      return res.status(400).json({ message: 'Apenas pedidos aprovados podem ser enviados para produção' })
+    }
+
+    // Verificar se já existe ordem para este pedido
+    const ordemExistente = await OrdemProducao.findOne({ pedidoId })
+    if (ordemExistente) {
+      return res.status(400).json({ message: 'Já existe uma ordem de produção para este pedido' })
+    }
+
+    // Criar ordem de produção
     const ordemProducao = await OrdemProducao.create({
-      pedidoId: id,
-      clienteNome,
-      itens,
-      valorTotal,
-      prioridade: prioridade || 'normal',
-      status: 'Pendente',
-      progresso: 0
+      pedidoId: pedido._id,
+      clienteId: pedido.clienteId,
+      clienteNome: pedido.clienteNome,
+      itens: pedido.itens.map(item => ({
+        produtoId: item.produto._id,
+        produtoNome: item.produto.nome,
+        quantidade: item.quantidade,
+        quantidadeProduzida: 0,
+        pecasBoas: 0,
+        pecasRuins: 0
+      })),
+      status: 'Aguardando',
+      prioridade: pedido.prioridade || 'Normal',
+      tipoOrdem: 'Pedido Cliente'
     })
+
+    // Atualizar status do pedido
+    pedido.status = 'Em Produção'
+    await pedido.save()
+
+    // Log
+    await ordemProducao.adicionarLog(
+      'Ordem Criada',
+      `Ordem criada a partir do pedido ${pedidoId}`,
+      req.user?.nome || 'Admin'
+    )
 
     res.status(201).json(ordemProducao)
   } catch (error) {
-    console.error('Erro ao receber pedido:', error)
-    res.status(500).json({ message: 'Erro ao criar ordem de produção' })
+    console.error('❌ Erro ao receber pedido:', error)
+    res.status(500).json({ message: 'Erro ao criar ordem de produção', error: error.message })
   }
 }
 
+// =============================
+// 📋 LISTAR ORDENS DE PRODUÇÃO
+// =============================
 export const listarOrdensProducao = async (req, res) => {
   try {
-    const ordens = await OrdemProducao.find().sort({ createdAt: -1 })
+    const { status, prioridade } = req.query
+    
+    const query = {}
+    if (status) query.status = status
+    if (prioridade) query.prioridade = prioridade
+
+    const ordens = await OrdemProducao.find(query)
+      .populate('clienteId', 'nome email')
+      .populate('itens.produtoId', 'nome foto preco')
+      .sort({ prioridade: -1, createdAt: 1 })
+
     res.json(ordens)
   } catch (error) {
-    console.error('Erro ao listar ordens:', error)
+    console.error('❌ Erro ao listar ordens:', error)
     res.status(500).json({ message: 'Erro ao listar ordens de produção' })
   }
 }
 
-export const atualizarStatusOrdem = async (req, res) => {
+// =============================
+// 📊 BUSCAR ORDEM POR ID
+// =============================
+export const buscarOrdemPorId = async (req, res) => {
   try {
-    const { status, ...dados } = req.body
-
-    const ordem = await OrdemProducao.findByIdAndUpdate(
-      req.params.id,
-      {
-        status,
-        ...dados,
-        ultimaAtualizacao: new Date()
-      },
-      { new: true }
-    )
+    const ordem = await OrdemProducao.findById(req.params.id)
+      .populate('clienteId', 'nome email')
+      .populate('itens.produtoId', 'nome foto preco')
 
     if (!ordem) {
       return res.status(404).json({ message: 'Ordem não encontrada' })
@@ -62,175 +102,330 @@ export const atualizarStatusOrdem = async (req, res) => {
 
     res.json(ordem)
   } catch (error) {
-    console.error('Erro ao atualizar ordem:', error)
-    res.status(500).json({ message: 'Erro ao atualizar ordem' })
+    console.error('❌ Erro ao buscar ordem:', error)
+    res.status(500).json({ message: 'Erro ao buscar ordem' })
   }
 }
 
-export const atualizarEstoqueAposProducao = async (req, res) => {
-  try {
-    const { ordemId, itensFinalizados } = req.body
-
-    // Atualizar estoque de cada produto
-    for (const item of itensFinalizados) {
-      await Produto.findByIdAndUpdate(
-        item.produtoId,
-        { $inc: { estoque: item.quantidade } }
-      )
-    }
-
-    res.json({
-      ordemId,
-      itensAtualizados: itensFinalizados,
-      timestamp: new Date().toISOString()
-    })
-  } catch (error) {
-    console.error('Erro ao atualizar estoque:', error)
-    res.status(500).json({ message: 'Erro ao atualizar estoque' })
-  }
-}
-
-export const lerVariaveisPlanta = async (req, res) => {
-  try {
-    // Simular variação
-    variaveisPlanta = {
-      ...variaveisPlanta,
-      temperatura: 22 + Math.random() * 8,
-      pressao: 1.0 + Math.random() * 0.5,
-      velocidade: 70 + Math.random() * 20,
-      ultimaAtualizacao: new Date().toISOString()
-    }
-
-    res.json(variaveisPlanta)
-  } catch (error) {
-    console.error('Erro ao ler variáveis:', error)
-    res.status(500).json({ message: 'Erro ao ler variáveis da planta' })
-  }
-}
-
+// =============================
+// 🚀 INICIAR PRODUÇÃO (ENVIAR PARA CLP)
+// =============================
 export const iniciarProducao = async (req, res) => {
   try {
-    const { ordemId, parametros } = req.body
+    const { ordemId } = req.body
 
-    const ordem = await OrdemProducao.findByIdAndUpdate(
-      ordemId,
-      {
-        status: 'Em Produção',
-        dataInicio: new Date(),
-        parametros
-      },
-      { new: true }
-    )
+    const ordem = await OrdemProducao.findById(ordemId).populate('itens.produtoId')
 
     if (!ordem) {
       return res.status(404).json({ message: 'Ordem não encontrada' })
     }
 
-    variaveisPlanta.status = 'Produzindo'
-    variaveisPlanta.producaoAtual = ordemId
+    if (ordem.status !== 'Aguardando') {
+      return res.status(400).json({ message: 'Ordem não está aguardando produção' })
+    }
+
+    // Verificar conexão OPC UA
+    if (!opcuaService.checkConnection()) {
+      await opcuaService.connect()
+    }
+
+    // Enviar pedido para o CLP via OPC UA
+    await opcuaService.enviarPedido(ordem)
+
+    // Aguardar ACK do CLP (pode implementar polling)
+    // Por enquanto, assumimos que enviou com sucesso
+
+    // Enviar comando de início
+    await opcuaService.iniciarProducao()
+
+    // Atualizar status da ordem
+    ordem.status = 'Em Produção'
+    ordem.tempos.inicio = new Date()
+    await ordem.save()
+
+    await ordem.adicionarLog(
+      'Produção Iniciada',
+      'Ordem enviada ao CLP e produção iniciada',
+      req.user?.nome || 'Sistema MES'
+    )
 
     res.json({
       success: true,
-      ordem,
-      variaveis: variaveisPlanta
+      message: 'Produção iniciada com sucesso',
+      ordem
     })
   } catch (error) {
-    console.error('Erro ao iniciar produção:', error)
-    res.status(500).json({ message: 'Erro ao iniciar produção' })
+    console.error('❌ Erro ao iniciar produção:', error)
+    res.status(500).json({ 
+      message: 'Erro ao iniciar produção', 
+      error: error.message 
+    })
   }
 }
 
-export const pararProducao = async (req, res) => {
+// =============================
+// ⏸️ PAUSAR PRODUÇÃO
+// =============================
+export const pausarProducao = async (req, res) => {
   try {
     const { ordemId, motivo } = req.body
 
-    const updateData = {
-      status: motivo === 'Concluída' ? 'Concluída' : 'Parada',
-      dataFim: new Date(),
-      motivoParada: motivo
-    }
-
-    if (motivo === 'Concluída') {
-      updateData.progresso = 100
-    }
-
-    const ordem = await OrdemProducao.findByIdAndUpdate(
-      ordemId,
-      updateData,
-      { new: true }
-    )
+    const ordem = await OrdemProducao.findById(ordemId)
 
     if (!ordem) {
       return res.status(404).json({ message: 'Ordem não encontrada' })
     }
 
-    // Atualizar estoque se concluída
-    if (motivo === 'Concluída') {
-      for (const item of ordem.itens) {
-        await Produto.findByIdAndUpdate(
-          item.produto.id,
-          { $inc: { estoque: item.quantidade } }
-        )
-      }
+    if (ordem.status !== 'Em Produção') {
+      return res.status(400).json({ message: 'Ordem não está em produção' })
     }
 
-    variaveisPlanta.status = 'Parada'
-    variaveisPlanta.producaoAtual = 0
+    // Enviar comando de abortar ao CLP
+    await opcuaService.abortarProducao()
+
+    ordem.status = 'Pausada'
+    ordem.observacoes = motivo
+    await ordem.save()
+
+    await ordem.adicionarLog(
+      'Produção Pausada',
+      motivo || 'Produção pausada manualmente',
+      req.user?.nome || 'Sistema MES'
+    )
+
+    res.json({
+      success: true,
+      message: 'Produção pausada',
+      ordem
+    })
+  } catch (error) {
+    console.error('❌ Erro ao pausar produção:', error)
+    res.status(500).json({ message: 'Erro ao pausar produção' })
+  }
+}
+
+// =============================
+// ✅ FINALIZAR PRODUÇÃO
+// =============================
+export const finalizarProducao = async (req, res) => {
+  try {
+    const { ordemId, pecasBoas, pecasRuins } = req.body
+
+    const ordem = await OrdemProducao.findById(ordemId).populate('itens.produtoId')
+
+    if (!ordem) {
+      return res.status(404).json({ message: 'Ordem não encontrada' })
+    }
+
+    // Finalizar ordem
+    await ordem.finalizarProducao(pecasBoas, pecasRuins)
+
+    // Atualizar estoque dos produtos
+    for (const item of ordem.itens) {
+      await Produto.findByIdAndUpdate(
+        item.produtoId._id,
+        { $inc: { estoque: pecasBoas } }
+      )
+    }
+
+    // Atualizar pedido original
+    const pedido = await Pedido.findById(ordem.pedidoId)
+    if (pedido) {
+      pedido.status = 'Enviado'
+      await pedido.save()
+    }
+
+    await ordem.adicionarLog(
+      'Produção Finalizada',
+      `Finalizado com ${pecasBoas} peças boas e ${pecasRuins} peças ruins`,
+      req.user?.nome || 'Sistema MES'
+    )
+
+    res.json({
+      success: true,
+      message: 'Produção finalizada com sucesso',
+      ordem
+    })
+  } catch (error) {
+    console.error('❌ Erro ao finalizar produção:', error)
+    res.status(500).json({ message: 'Erro ao finalizar produção' })
+  }
+}
+
+// =============================
+// 🔄 CANCELAR ORDEM
+// =============================
+export const cancelarOrdem = async (req, res) => {
+  try {
+    const { ordemId, motivo } = req.body
+
+    const ordem = await OrdemProducao.findById(ordemId)
+
+    if (!ordem) {
+      return res.status(404).json({ message: 'Ordem não encontrada' })
+    }
+
+    if (ordem.status === 'Finalizada') {
+      return res.status(400).json({ message: 'Não é possível cancelar ordem finalizada' })
+    }
+
+    // Se estiver em produção, abortar no CLP
+    if (ordem.status === 'Em Produção') {
+      await opcuaService.abortarProducao()
+    }
+
+    ordem.status = 'Cancelada'
+    ordem.observacoes = motivo
+    await ordem.save()
+
+    await ordem.adicionarLog(
+      'Ordem Cancelada',
+      motivo || 'Ordem cancelada manualmente',
+      req.user?.nome || 'Sistema MES'
+    )
+
+    res.json({
+      success: true,
+      message: 'Ordem cancelada',
+      ordem
+    })
+  } catch (error) {
+    console.error('❌ Erro ao cancelar ordem:', error)
+    res.status(500).json({ message: 'Erro ao cancelar ordem' })
+  }
+}
+
+// =============================
+// 📡 LER STATUS DO CLP
+// =============================
+export const lerStatusCLP = async (req, res) => {
+  try {
+    // Verificar conexão
+    if (!opcuaService.checkConnection()) {
+      await opcuaService.connect()
+    }
+
+    // Ler status e ACK do CLP
+    const status = await opcuaService.readStatus()
+    const ack = await opcuaService.readAck()
+
+    res.json({
+      status,
+      ack,
+      timestamp: new Date().toISOString(),
+      connected: opcuaService.checkConnection()
+    })
+  } catch (error) {
+    console.error('❌ Erro ao ler status do CLP:', error)
+    res.status(500).json({ 
+      message: 'Erro ao ler status do CLP', 
+      error: error.message,
+      connected: false
+    })
+  }
+}
+
+// =============================
+// 🔄 ATUALIZAR STATUS DO CLP NA ORDEM
+// =============================
+export const atualizarStatusCLPNaOrdem = async (req, res) => {
+  try {
+    const { ordemId } = req.body
+
+    const ordem = await OrdemProducao.findById(ordemId)
+
+    if (!ordem) {
+      return res.status(404).json({ message: 'Ordem não encontrada' })
+    }
+
+    // Ler status do CLP
+    const statusCLP = await opcuaService.readStatus()
+
+    // Atualizar na ordem
+    await ordem.atualizarStatusCLP(statusCLP)
 
     res.json({
       success: true,
       ordem,
-      variaveis: variaveisPlanta
+      statusCLP
     })
   } catch (error) {
-    console.error('Erro ao parar produção:', error)
-    res.status(500).json({ message: 'Erro ao parar produção' })
+    console.error('❌ Erro ao atualizar status:', error)
+    res.status(500).json({ message: 'Erro ao atualizar status' })
   }
 }
 
-export const consultarEstoque = async (req, res) => {
+// =============================
+// 🔄 RESET DE FALHAS
+// =============================
+export const resetFalhasCLP = async (req, res) => {
   try {
-    const produtos = await Produto.find().select('_id estoque')
+    await opcuaService.resetFalhas()
+
+    res.json({
+      success: true,
+      message: 'Reset de falhas enviado ao CLP'
+    })
+  } catch (error) {
+    console.error('❌ Erro ao resetar falhas:', error)
+    res.status(500).json({ message: 'Erro ao resetar falhas' })
+  }
+}
+
+// =============================
+// 🔌 CONECTAR/DESCONECTAR OPC UA
+// =============================
+export const conectarOPCUA = async (req, res) => {
+  try {
+    await opcuaService.connect()
     
-    const estoque = produtos.map(p => ({
-      produtoId: p._id,
-      disponivel: p.estoque,
-      bloqueado: 0
-    }))
-
-    res.json(estoque)
+    res.json({
+      success: true,
+      message: 'Conectado ao servidor OPC UA',
+      endpoint: opcuaService.endpointUrl
+    })
   } catch (error) {
-    console.error('Erro ao consultar estoque:', error)
-    res.status(500).json({ message: 'Erro ao consultar estoque' })
+    console.error('❌ Erro ao conectar OPC UA:', error)
+    res.status(500).json({ 
+      message: 'Erro ao conectar OPC UA', 
+      error: error.message 
+    })
   }
 }
 
-export const bloquearEstoque = async (req, res) => {
+export const desconectarOPCUA = async (req, res) => {
   try {
-    const { produtoId, quantidade } = req.body
-
+    await opcuaService.disconnect()
+    
     res.json({
-      produtoId,
-      quantidadeBloqueada: quantidade,
-      timestamp: new Date().toISOString()
+      success: true,
+      message: 'Desconectado do servidor OPC UA'
     })
   } catch (error) {
-    console.error('Erro ao bloquear estoque:', error)
-    res.status(500).json({ message: 'Erro ao bloquear estoque' })
+    console.error('❌ Erro ao desconectar OPC UA:', error)
+    res.status(500).json({ message: 'Erro ao desconectar OPC UA' })
   }
 }
 
-export const liberarEstoque = async (req, res) => {
+// =============================
+// 📊 ESTATÍSTICAS DO MES
+// =============================
+export const obterEstatisticas = async (req, res) => {
   try {
-    const { produtoId, quantidade } = req.body
+    const aguardando = await OrdemProducao.countDocuments({ status: 'Aguardando' })
+    const emProducao = await OrdemProducao.countDocuments({ status: 'Em Produção' })
+    const finalizadas = await OrdemProducao.countDocuments({ status: 'Finalizada' })
+    const canceladas = await OrdemProducao.countDocuments({ status: 'Cancelada' })
 
     res.json({
-      produtoId,
-      quantidadeLiberada: quantidade,
-      timestamp: new Date().toISOString()
+      aguardando,
+      emProducao,
+      finalizadas,
+      canceladas,
+      total: aguardando + emProducao + finalizadas + canceladas
     })
   } catch (error) {
-    console.error('Erro ao liberar estoque:', error)
-    res.status(500).json({ message: 'Erro ao liberar estoque' })
+    console.error('❌ Erro ao obter estatísticas:', error)
+    res.status(500).json({ message: 'Erro ao obter estatísticas' })
   }
 }

@@ -1,34 +1,51 @@
+// backend/routes/mes.js
 import express from 'express'
 import {
   receberPedidoAprovado,
   listarOrdensProducao,
-  atualizarStatusOrdem,
-  atualizarEstoqueAposProducao,
-  lerVariaveisPlanta,
+  buscarOrdemPorId,
   iniciarProducao,
-  pararProducao,
-  consultarEstoque,
-  bloquearEstoque,
-  liberarEstoque
+  pausarProducao,
+  finalizarProducao,
+  cancelarOrdem,
+  lerStatusCLP,
+  atualizarStatusCLPNaOrdem,
+  resetFalhasCLP,
+  conectarOPCUA,
+  desconectarOPCUA,
+  obterEstatisticas
 } from '../controllers/mesController.js'
 import { authenticateToken, authorizeRoles } from '../middleware/auth.js'
 
 const router = express.Router()
 
-// Ordens de produção
+// =============================
+// 📦 ORDENS DE PRODUÇÃO
+// =============================
 router.post('/receber-pedido', authenticateToken, authorizeRoles('admin'), receberPedidoAprovado)
 router.get('/ordens-producao', authenticateToken, authorizeRoles('admin', 'mes'), listarOrdensProducao)
-router.patch('/ordens-producao/:id', authenticateToken, authorizeRoles('admin', 'mes'), atualizarStatusOrdem)
+router.get('/ordens-producao/:id', authenticateToken, authorizeRoles('admin', 'mes'), buscarOrdemPorId)
 
-// Estoque
-router.post('/atualizar-estoque', authenticateToken, authorizeRoles('mes'), atualizarEstoqueAposProducao)
-router.get('/estoque', authenticateToken, authorizeRoles('admin', 'mes'), consultarEstoque)
-router.post('/estoque/bloquear', authenticateToken, authorizeRoles('mes'), bloquearEstoque)
-router.post('/estoque/liberar', authenticateToken, authorizeRoles('mes'), liberarEstoque)
+// =============================
+// 🎬 CONTROLE DE PRODUÇÃO
+// =============================
+router.post('/producao/iniciar', authenticateToken, authorizeRoles('mes'), iniciarProducao)
+router.post('/producao/pausar', authenticateToken, authorizeRoles('mes'), pausarProducao)
+router.post('/producao/finalizar', authenticateToken, authorizeRoles('mes'), finalizarProducao)
+router.post('/producao/cancelar', authenticateToken, authorizeRoles('mes', 'admin'), cancelarOrdem)
 
-// Planta (OPC UA simulado)
-router.get('/planta/variaveis', authenticateToken, authorizeRoles('mes'), lerVariaveisPlanta)
-router.post('/planta/iniciar-producao', authenticateToken, authorizeRoles('mes'), iniciarProducao)
-router.post('/planta/parar-producao', authenticateToken, authorizeRoles('mes'), pararProducao)
+// =============================
+// 📡 OPC UA / CLP
+// =============================
+router.get('/clp/status', authenticateToken, authorizeRoles('mes'), lerStatusCLP)
+router.post('/clp/atualizar-status', authenticateToken, authorizeRoles('mes'), atualizarStatusCLPNaOrdem)
+router.post('/clp/reset-falhas', authenticateToken, authorizeRoles('mes'), resetFalhasCLP)
+router.post('/clp/conectar', authenticateToken, authorizeRoles('mes', 'admin'), conectarOPCUA)
+router.post('/clp/desconectar', authenticateToken, authorizeRoles('mes', 'admin'), desconectarOPCUA)
+
+// =============================
+// 📊 ESTATÍSTICAS
+// =============================
+router.get('/estatisticas', authenticateToken, authorizeRoles('mes', 'admin'), obterEstatisticas)
 
 export default router
