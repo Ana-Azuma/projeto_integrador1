@@ -77,14 +77,25 @@
         <div v-else class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           <div
             v-for="produto in produtosDisponiveis"
-            :key="produto.id"
+            :key="produto._id || produto.id"
             class="overflow-hidden transition-shadow bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md"
           >
             <!-- Imagem do Produto -->
-            <div class="flex items-center justify-center h-48 bg-gradient-to-br from-orange-100 to-orange-200">
-              <svg class="w-16 h-16 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M9 13h6"/>
-              </svg>
+            <div class="relative h-48 overflow-hidden bg-gradient-to-br from-orange-100 to-orange-200">
+              <template v-if="produto.foto">
+                <img
+                  :src="produto.foto"
+                  :alt="produto.nome"
+                  class="object-cover w-full h-full"
+                />
+              </template>
+              <template v-else>
+                <div class="flex items-center justify-center h-full">
+                  <svg class="w-16 h-16 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M9 13h6"/>
+                  </svg>
+                </div>
+              </template>
             </div>
 
             <!-- Informações do Produto -->
@@ -103,7 +114,7 @@
 
               <!-- Quantidade e Adicionar - LIMITE MÁXIMO 3 UNIDADES -->
               <div class="flex items-center space-x-2">
-                <select v-model="quantidades[produto.id]" class="flex-1 px-2 py-1 text-sm border border-gray-300 rounded-md">
+                <select v-model="quantidades[produto._id || produto.id]" class="flex-1 px-2 py-1 text-sm border border-gray-300 rounded-md">
                   <option v-for="n in Math.min(produto.estoque, 3)" :key="n" :value="n">{{ n }}</option>
                 </select>
                 <button
@@ -178,15 +189,17 @@ export default defineComponent({
     // Methods
     const carregarProdutos = async () => {
       await produtoStore.carregarProdutos()
-      // Inicializar quantidades
+      // Inicializar quantidades - CORRIGIDO para usar _id
       produtos.value.forEach(produto => {
-        quantidades.value[produto.id] = 1
+        const id = produto._id || produto.id
+        quantidades.value[id] = 1
       })
     }
 
     const adicionarAoCarrinho = (produto) => {
       try {
-        const quantidade = quantidades.value[produto.id] || 1
+        const id = produto._id || produto.id
+        const quantidade = quantidades.value[id] || 1
         
         // VALIDAÇÃO: Máximo 3 unidades
         if (quantidade > 3) {
@@ -237,3 +250,13 @@ export default defineComponent({
   }
 })
 </script>
+
+<style scoped>
+.btn-primary {
+  @apply inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-colors;
+}
+
+.btn-secondary {
+  @apply inline-flex items-center justify-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-colors;
+}
+</style>

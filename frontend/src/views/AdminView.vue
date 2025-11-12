@@ -194,8 +194,8 @@
           >
             <div class="aspect-w-16 aspect-h-9 bg-gray-200">
               <img
-                v-if="produto.imagem"
-                :src="produto.imagem"
+                v-if="produto.foto"
+                :src="produto.foto"
                 :alt="produto.nome"
                 class="object-cover w-full h-48"
               />
@@ -215,7 +215,6 @@
                   {{ produto.ativo ? 'Ativo' : 'Inativo' }}
                 </span>
               </div>
-              <p class="mb-2 text-sm text-gray-600">{{ produto.categoria }}</p>
               <p class="mb-3 text-sm text-gray-500 line-clamp-2">{{ produto.descricao }}</p>
               <div class="flex items-center justify-between pt-3 border-t">
                 <div>
@@ -285,36 +284,29 @@
       </div>
     </div>
 
-    <!-- Modal Produto -->
+    <!-- Modal Produto COM UPLOAD DE IMAGEM -->
     <div v-if="showProdutoModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
-      <div class="w-full max-w-2xl p-6 bg-white rounded-lg">
+      <div class="w-full max-w-2xl p-6 bg-white rounded-lg max-h-[90vh] overflow-y-auto">
         <h3 class="mb-4 text-lg font-semibold text-gray-900">
           {{ produtoEditando ? 'Editar Produto' : 'Novo Produto' }}
         </h3>
         <form @submit.prevent="salvarProduto" class="space-y-4">
+          <!-- Nome -->
+          <div>
+            <label class="block mb-1 text-sm font-medium text-gray-700">Nome *</label>
+            <input
+              v-model="formProduto.nome"
+              type="text"
+              required
+              class="form-input"
+              placeholder="Nome do produto"
+            />
+          </div>
+
+          <!-- Preço e Estoque -->
           <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <label class="block mb-1 text-sm font-medium text-gray-700">Nome</label>
-              <input
-                v-model="formProduto.nome"
-                type="text"
-                required
-                class="form-input"
-                placeholder="Nome do produto"
-              />
-            </div>
-            <div>
-              <label class="block mb-1 text-sm font-medium text-gray-700">Categoria</label>
-              <input
-                v-model="formProduto.categoria"
-                type="text"
-                required
-                class="form-input"
-                placeholder="Categoria"
-              />
-            </div>
-            <div>
-              <label class="block mb-1 text-sm font-medium text-gray-700">Preço (R$)</label>
+              <label class="block mb-1 text-sm font-medium text-gray-700">Preço (R$) *</label>
               <input
                 v-model.number="formProduto.preco"
                 type="number"
@@ -325,7 +317,7 @@
               />
             </div>
             <div>
-              <label class="block mb-1 text-sm font-medium text-gray-700">Estoque</label>
+              <label class="block mb-1 text-sm font-medium text-gray-700">Estoque *</label>
               <input
                 v-model.number="formProduto.estoque"
                 type="number"
@@ -335,6 +327,8 @@
               />
             </div>
           </div>
+
+          <!-- Descrição -->
           <div>
             <label class="block mb-1 text-sm font-medium text-gray-700">Descrição</label>
             <textarea
@@ -344,15 +338,51 @@
               placeholder="Descrição do produto"
             ></textarea>
           </div>
+
+          <!-- Upload de Foto -->
           <div>
-            <label class="block mb-1 text-sm font-medium text-gray-700">URL da Imagem</label>
-            <input
-              v-model="formProduto.imagem"
-              type="url"
-              class="form-input"
-              placeholder="https://..."
-            />
+            <label class="block mb-2 text-sm font-medium text-gray-700">Foto do Produto</label>
+            
+            <!-- Preview da imagem -->
+            <div v-if="previewImagem || formProduto.foto" class="mb-3">
+              <img 
+                :src="previewImagem || formProduto.foto" 
+                alt="Preview" 
+                class="object-cover w-full h-48 border-2 border-gray-300 rounded-lg"
+              />
+              <button 
+                type="button" 
+                @click="removerImagem" 
+                class="mt-2 text-sm text-red-600 hover:text-red-800"
+              >
+                Remover imagem
+              </button>
+            </div>
+
+            <!-- Input de arquivo -->
+            <div class="flex items-center justify-center w-full">
+              <label class="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                  <svg class="w-10 h-10 mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                  </svg>
+                  <p class="mb-2 text-sm text-gray-500">
+                    <span class="font-semibold">Clique para fazer upload</span> ou arraste a imagem
+                  </p>
+                  <p class="text-xs text-gray-500">PNG, JPG ou WEBP (MAX. 2MB)</p>
+                </div>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  class="hidden" 
+                  @change="handleImageUpload"
+                  ref="fileInput"
+                />
+              </label>
+            </div>
           </div>
+
+          <!-- Produto Ativo -->
           <div class="flex items-center">
             <input
               v-model="formProduto.ativo"
@@ -362,7 +392,9 @@
             />
             <label for="ativo" class="ml-2 text-sm text-gray-700">Produto ativo</label>
           </div>
-          <div class="flex space-x-3">
+
+          <!-- Botões -->
+          <div class="flex pt-4 space-x-3 border-t">
             <button type="button" @click="fecharModalProduto" class="flex-1 btn-secondary">Cancelar</button>
             <button type="submit" class="flex-1 btn-primary">Salvar Produto</button>
           </div>
@@ -388,7 +420,6 @@ const pedidos = computed(() => pedidoStore.pedidos)
 const pedidosPendentes = computed(() => pedidoStore.pedidosPorStatus('Pendente de Aprovação'))
 const estatisticas = computed(() => pedidoStore.estatisticasPedidos)
 
-// ===== DEFINIÇÃO DAS TABS - ERA ISSO QUE ESTAVA FALTANDO! =====
 const tabs = [
   { id: 'dashboard', nome: 'Dashboard' },
   { id: 'pedidos', nome: 'Pedidos' },
@@ -405,13 +436,15 @@ const motivoRejeicao = ref('')
 const pedidoParaAprovar = ref(null)
 const pedidoParaRejeitar = ref(null)
 const produtoEditando = ref(null)
+const previewImagem = ref(null)
+const fileInput = ref(null)
+
 const formProduto = ref({
   nome: '',
   descricao: '',
   preco: 0,
-  categoria: '',
   estoque: 0,
-  imagem: '',
+  foto: '',
   ativo: true
 })
 
@@ -447,7 +480,7 @@ const confirmarAprovacao = async () => {
 }
 
 const confirmarRejeicao = async () => {
-  await pedidoStore.rejeitarPedido(pedidoParaRejeitar.value._id, motivoRejeicao.value)
+  await pedidoStore.rejeitarPeduto(pedidoParaRejeitar.value._id, motivoRejeicao.value)
   fecharRejeicaoModal()
   motivoRejeicao.value = ''
 }
@@ -462,16 +495,16 @@ const fecharRejeicaoModal = () => {
   pedidoParaRejeitar.value = null
 }
 
-// ===== FUNÇÕES DE PRODUTOS =====
+// ===== FUNÇÕES DE PRODUTOS COM UPLOAD DE IMAGEM =====
 const abrirModalProduto = () => {
   produtoEditando.value = null
+  previewImagem.value = null
   formProduto.value = {
     nome: '',
     descricao: '',
     preco: 0,
-    categoria: '',
     estoque: 0,
-    imagem: '',
+    foto: '',
     ativo: true
   }
   showProdutoModal.value = true
@@ -479,17 +512,64 @@ const abrirModalProduto = () => {
 
 const editarProduto = (produto) => {
   produtoEditando.value = produto
+  previewImagem.value = null
   formProduto.value = { ...produto }
   showProdutoModal.value = true
 }
 
-const salvarProduto = async () => {
-  if (produtoEditando.value) {
-    await produtoStore.atualizarProduto(produtoEditando.value._id, formProduto.value)
-  } else {
-    await produtoStore.criarProduto(formProduto.value)  
+// Função para converter imagem em Base64
+const handleImageUpload = (event) => {
+  const file = event.target.files[0]
+  
+  if (!file) return
+  
+  // Validar tamanho (max 2MB)
+  if (file.size > 2 * 1024 * 1024) {
+    alert('A imagem deve ter no máximo 2MB')
+    return
   }
-  fecharModalProduto()
+  
+  // Validar tipo
+  if (!file.type.startsWith('image/')) {
+    alert('Por favor, selecione apenas imagens')
+    return
+  }
+  
+  const reader = new FileReader()
+  
+  reader.onload = (e) => {
+    const base64Image = e.target.result
+    previewImagem.value = base64Image
+    formProduto.value.foto = base64Image
+  }
+  
+  reader.onerror = () => {
+    alert('Erro ao ler a imagem')
+  }
+  
+  reader.readAsDataURL(file)
+}
+
+const removerImagem = () => {
+  previewImagem.value = null
+  formProduto.value.foto = ''
+  if (fileInput.value) {
+    fileInput.value.value = ''
+  }
+}
+
+const salvarProduto = async () => {
+  try {
+    if (produtoEditando.value) {
+      await produtoStore.atualizarProduto(produtoEditando.value._id, formProduto.value)
+    } else {
+      await produtoStore.criarProduto(formProduto.value)
+    }
+    fecharModalProduto()
+  } catch (error) {
+    console.error('Erro ao salvar produto:', error)
+    alert('Erro ao salvar produto. Verifique o console para mais detalhes.')
+  }
 }
 
 const toggleAtivoProduto = async (produto) => {
@@ -499,6 +579,7 @@ const toggleAtivoProduto = async (produto) => {
 const fecharModalProduto = () => {
   showProdutoModal.value = false
   produtoEditando.value = null
+  previewImagem.value = null
 }
 
 const formatarData = (data) => new Date(data).toLocaleString('pt-BR')
